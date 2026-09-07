@@ -1,0 +1,30 @@
+name: Jarvis
+role: orchestrator
+default_sensitivity_tier: private
+entrypoint: jarvis
+health_check_command: jarvis --health
+sandboxed: false
+
+# --- notes for the ecosystem -------------------------------------------
+#
+# Jarvis is the single entry point that classifies intent, assigns a
+# sensitivity tier, and dispatches to the sibling agent (Friday, Ultron,
+# Alfred) whose MCP server can handle the request. See jarvis/tiers.py for
+# the tier engine and jarvis/classifier.py for the (v1, keyword-based)
+# intent classifier.
+#
+# default_sensitivity_tier is `private` because Jarvis itself never knows in
+# advance what a request will contain — fail-closed default per
+# 10x/docs/omniroute-privacy-spec.md, not a claim that every Jarvis request
+# is sensitive.
+#
+# `jarvis --health` (this file's health_check_command) is a top-level eager
+# flag, matching the pattern Friday (`friday --health`) and Ultron
+# (`ultron --health`) already use, and reports Jarvis's own status only
+# (context store reachable, at least one sibling agent config loadable).
+# The separate `jarvis health` subcommand aggregates all three sibling
+# agents' own health_check_command output plus Jarvis's own — see README.md
+# "jarvis health vs jarvis --health" for why both exist.
+#
+# agents_config: jarvis/agents.yaml (paths overridable via JARVIS_FRIDAY_PATH,
+# JARVIS_ULTRON_PATH, JARVIS_ALFRED_PATH env vars).

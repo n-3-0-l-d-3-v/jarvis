@@ -1,0 +1,68 @@
+# Jarvis sibling-agent registry.
+#
+# Each entry mirrors what that agent's own agent.yaml declares (see each
+# repo's agent.yaml — this file does not try to be the source of truth for
+# those values, it just needs enough to launch the MCP server and the
+# health-check subprocess without re-parsing YAML comments at runtime).
+#
+# `path` is the local repo root. It is read from an env var first so this
+# checked-in file doesn't hardcode a machine-specific absolute Windows path;
+# the value below is only the *default* used when the env var is unset,
+# matching the paths this ecosystem actually uses on this machine today.
+#
+# `working_directory` is relative to `path` and is where the launch/health
+# commands must be run from (e.g. Alfred's package only resolves from
+# apps/api).
+
+agents:
+  friday:
+    display_name: Friday
+    role: knowledge-capture-and-writing
+    default_sensitivity_tier: personal-token
+    path_env: JARVIS_FRIDAY_PATH
+    default_path: "C:\\Users\\Neil Thomas Mathew\\Desktop\\Neil\\friday"
+    working_directory: "."
+    mcp_launch_command: ["python", "-m", "friday.mcp_server"]
+    # agent.yaml declares `health_check_command: friday --health` — the
+    # installed console script, not `python -m friday` (friday has no
+    # friday/__main__.py, only friday/cli.py wired up as a setuptools
+    # entry point). Matched here literally so `jarvis health` calls exactly
+    # what Friday's own contract says to call.
+    health_check_command: ["friday", "--health"]
+    needs_project_path: false
+
+  ultron:
+    display_name: Ultron
+    role: reverse-engineering-and-security
+    default_sensitivity_tier: private
+    path_env: JARVIS_ULTRON_PATH
+    default_path: "C:\\Users\\Neil Thomas Mathew\\Desktop\\Neil\\ultron"
+    working_directory: "."
+    # Ultron is project-scoped: the MCP server needs an explicit RE project
+    # directory (`-P <project_path>`), inserted by the client manager at
+    # launch time. There is no "the" Ultron server, only "an Ultron server
+    # for this analysis project" — see ultron/mcp/server.py and
+    # ultron/project/store.py's Project.discover().
+    # Matches the task spec's literal launch form. `ultron` is the console
+    # script from ultron/pyproject.toml's [project.scripts] (ultron.cli:main)
+    # — it is NOT `python -m ultron` (ultron has no ultron/__main__.py), so
+    # this requires that repo to have been `pip install -e .`'d first.
+    mcp_launch_command: ["ultron", "-P", "{project_path}", "mcp"]
+    # agent.yaml declares `health_check_command: ultron --health` — the
+    # installed console script.
+    health_check_command: ["ultron", "--health"]
+    needs_project_path: true
+
+  alfred:
+    display_name: Alfred
+    role: learning-and-upskilling
+    default_sensitivity_tier: personal-token
+    path_env: JARVIS_ALFRED_PATH
+    default_path: "C:\\Users\\Neil Thomas Mathew\\Desktop\\Neil\\alfred"
+    # Alfred's entrypoint/health_check_command in its agent.yaml are only
+    # meant to be run from apps/api (that's where the local `alfred` package
+    # resolves from — it is not an installed console script).
+    working_directory: "apps/api"
+    mcp_launch_command: ["python", "-m", "alfred.mcp_server"]
+    health_check_command: ["python", "-m", "alfred", "--health"]
+    needs_project_path: false
