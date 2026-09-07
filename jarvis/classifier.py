@@ -90,7 +90,7 @@ def classify(text: str) -> ClassificationResult:
         return ClassificationResult(
             agent=DEFAULT_AGENT,
             reason="no keyword matched any known category; defaulting to "
-            f"'{DEFAULT_AGENT}' (v1 keyword classifier — use --agent to "
+            f"'{DEFAULT_AGENT}' (v1 keyword classifier - use --agent to "
             "override)",
             matched_keywords=[],
             scores=scores,

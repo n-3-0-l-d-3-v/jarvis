@@ -30,6 +30,13 @@ agents:
     # what Friday's own contract says to call.
     health_check_command: ["friday", "--health"]
     needs_project_path: false
+    # `jarvis ask "<free text>"` needs *some* tool + argument to call for a
+    # generic natural-language request. Friday's ask_knowledge_base(question)
+    # is the one sibling-agent tool across all three agents whose signature
+    # is "one free-text string in, one free-text string out" — see README.md
+    # "why only Friday has a default_tool" for why Ultron/Alfred don't.
+    default_tool: ask_knowledge_base
+    default_tool_arg: question
 
   ultron:
     display_name: Ultron
@@ -52,6 +59,12 @@ agents:
     # installed console script.
     health_check_command: ["ultron", "--health"]
     needs_project_path: true
+    # No default_tool: Ultron's tools are all structured (artifact ids,
+    # claim predicates, project graph queries) — there is no single
+    # "free text in, free text out" tool to hang a generic `jarvis ask` on.
+    # `jarvis ask --agent ultron` requires explicit --tool/--tool-arg.
+    default_tool: null
+    default_tool_arg: null
 
   alfred:
     display_name: Alfred
@@ -66,3 +79,9 @@ agents:
     mcp_launch_command: ["python", "-m", "alfred.mcp_server"]
     health_check_command: ["python", "-m", "alfred", "--health"]
     needs_project_path: false
+    # No default_tool: Alfred's tools (get_hint, submit_for_ac_gate,
+    # get_review, get_interview_questions) all require a problem `slug`
+    # (and often a `level`/`code`), not a single free-text argument.
+    # `jarvis ask --agent alfred` requires explicit --tool/--tool-arg.
+    default_tool: null
+    default_tool_arg: null

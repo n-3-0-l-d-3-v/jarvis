@@ -34,6 +34,8 @@ class AgentSpec:
     mcp_launch_command: list[str]
     health_check_command: list[str]
     needs_project_path: bool = False
+    default_tool: Optional[str] = None
+    default_tool_arg: Optional[str] = None
 
     @property
     def cwd(self) -> Path:
@@ -103,6 +105,8 @@ def load_registry(agents_yaml_path: Optional[Path] = None) -> dict[str, AgentSpe
             mcp_launch_command=list(entry["mcp_launch_command"]),
             health_check_command=list(entry["health_check_command"]),
             needs_project_path=bool(entry.get("needs_project_path", False)),
+            default_tool=entry.get("default_tool"),
+            default_tool_arg=entry.get("default_tool_arg"),
         )
     return result
 
