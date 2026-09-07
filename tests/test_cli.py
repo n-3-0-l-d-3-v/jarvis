@@ -75,7 +75,7 @@ class TestHealthCommand:
         payload = json.loads(result.output)
         assert "jarvis" in payload
         assert "agents" in payload
-        assert set(payload["agents"]) == {"friday", "ultron", "alfred"}
+        assert set(payload["agents"]) == {"friday", "ultron", "alfred", "tars", "vision"}
 
 
 class TestAskCommand:

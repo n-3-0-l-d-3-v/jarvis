@@ -106,7 +106,7 @@ def test_needs_project_path_with_project_substitutes(sample_yaml, monkeypatch):
 def test_real_agents_yaml_loads():
     """Sanity check against the actual shipped jarvis/agents.yaml."""
     registry = load_registry()
-    assert set(registry) == {"friday", "ultron", "alfred"}
+    assert set(registry) == {"friday", "ultron", "alfred", "tars", "vision"}
     assert registry["ultron"].needs_project_path is True
     assert registry["friday"].needs_project_path is False
     assert registry["alfred"].working_directory == "apps/api"

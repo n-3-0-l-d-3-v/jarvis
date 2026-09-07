@@ -85,3 +85,42 @@ agents:
     # `jarvis ask --agent alfred` requires explicit --tool/--tool-arg.
     default_tool: null
     default_tool_arg: null
+
+  tars:
+    display_name: TARS
+    role: code-build-test-scaffolding
+    default_sensitivity_tier: work
+    path_env: JARVIS_TARS_PATH
+    default_path: "C:\\Users\\Neil Thomas Mathew\\Desktop\\Neil\\tars"
+    working_directory: "."
+    mcp_launch_command: ["python", "-m", "tars.mcp_server"]
+    # agent.yaml declares `health_check_command: tars --health` — the
+    # installed console script (tars has no tars/__main__.py).
+    health_check_command: ["tars", "--health"]
+    needs_project_path: false
+    # No default_tool: TARS's tools (scaffold, test, build, git_status)
+    # all require structured args (template name, project name, a path),
+    # not a single free-text string. `jarvis ask --agent tars` requires
+    # explicit --tool/--tool-arg, same reasoning as Ultron/Alfred above.
+    default_tool: null
+    default_tool_arg: null
+
+  vision:
+    display_name: Vision
+    role: creative-and-ideation
+    default_sensitivity_tier: work
+    path_env: JARVIS_VISION_PATH
+    default_path: "C:\\Users\\Neil Thomas Mathew\\Desktop\\Neil\\vision"
+    working_directory: "."
+    # KNOWN GAP: Vision has no MCP server (build oversight — its spec never
+    # asked for one, unlike Friday/Ultron/Alfred/TARS). health_check_command
+    # below works today (`jarvis health` can poll it); mcp_launch_command is
+    # left null so mcp_client.py fails loudly and specifically ("Vision has
+    # no MCP server yet") instead of trying to launch a module that doesn't
+    # exist. `jarvis ask --agent vision` / `--tool` will not work until
+    # vision/mcp_server.py is built — tracked in 10x/docs/phases/README.md.
+    mcp_launch_command: null
+    health_check_command: ["vision", "--health"]
+    needs_project_path: false
+    default_tool: null
+    default_tool_arg: null

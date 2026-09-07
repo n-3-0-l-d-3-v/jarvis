@@ -31,7 +31,7 @@ class AgentSpec:
     default_sensitivity_tier: str
     path: Path
     working_directory: str
-    mcp_launch_command: list[str]
+    mcp_launch_command: Optional[list[str]]
     health_check_command: list[str]
     needs_project_path: bool = False
     default_tool: Optional[str] = None
@@ -44,6 +44,13 @@ class AgentSpec:
 
     def resolved_mcp_launch_command(self, project_path: Optional[str] = None) -> list[str]:
         """Substitute ``{project_path}`` placeholders (Ultron only)."""
+        if self.mcp_launch_command is None:
+            raise RegistryError(
+                f"agent '{self.key}' has no MCP server yet (mcp_launch_command "
+                f"is null in agents.yaml) — it can be health-checked via "
+                f"`jarvis health`, but `jarvis ask`/`route --tool` cannot "
+                f"dispatch to it until one is built."
+            )
         if self.needs_project_path and not project_path:
             raise RegistryError(
                 f"agent '{self.key}' needs a project path to launch its MCP "
@@ -102,7 +109,11 @@ def load_registry(agents_yaml_path: Optional[Path] = None) -> dict[str, AgentSpe
             default_sensitivity_tier=entry["default_sensitivity_tier"],
             path=_resolve_path(entry, key),
             working_directory=entry.get("working_directory", "."),
-            mcp_launch_command=list(entry["mcp_launch_command"]),
+            mcp_launch_command=(
+                list(entry["mcp_launch_command"])
+                if entry["mcp_launch_command"] is not None
+                else None
+            ),
             health_check_command=list(entry["health_check_command"]),
             needs_project_path=bool(entry.get("needs_project_path", False)),
             default_tool=entry.get("default_tool"),
