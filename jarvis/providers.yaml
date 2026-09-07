@@ -1,0 +1,79 @@
+# OmniRoute provider eligibility per sensitivity tier. See
+# 10x-ecosystem/docs/omniroute-privacy-spec.md for the full rationale — this
+# file is the declarative form of that spec's provider-eligibility table,
+# used by jarvis/providers.py to answer "is provider X allowed for tier Y"
+# and "is provider X actually configured right now" (two different
+# questions — eligible-in-principle vs. wired-up-and-usable-today).
+#
+# IMPORTANT — what this file does NOT do yet: it does not make Jarvis the
+# single choke point the privacy spec describes ("every other agent calls
+# through it rather than hitting a model API directly"). Friday and Alfred
+# already had working, correctly tier-guaranteed provider logic before
+# Jarvis existed (their own assert_personal_token_tier checks, using their
+# own keys) — retrofitting that through a central Jarvis router would be a
+# real rewrite of code that already works correctly, not a Phase 5 task.
+# What Phase 5 actually adds is real: Jarvis's own model usage (the
+# classifier) now goes through a provider that is local-only by
+# construction (ollama_client.py has no remote-host parameter at all), so
+# Jarvis's own tier guarantee is enforced structurally, the same way
+# Ultron's is. This file documents the intended full picture and marks
+# what's real today vs. still aspirational.
+
+tiers:
+  private:
+    eligible_providers: [ollama-local]
+    notes: >
+      Local only, no exceptions. Ultron enforces this itself
+      (ultron/network_policy.py, hard-refuses a non-local backend host).
+      Jarvis enforces it by construction: ollama_client.py has no
+      parameter that can point it at a remote host.
+
+  personal-token:
+    eligible_providers: [ollama-local, groq-personal, gemini-personal]
+    notes: >
+      Friday and Alfred each enforce their own personal-token guarantee
+      directly, using the operator's own API keys, independently of this
+      file. Not centrally routed through Jarvis yet — tracked as future
+      work if a provider ever needs swapping ecosystem-wide without
+      touching each agent's own config.
+
+  work:
+    eligible_providers: [ollama-local, groq-free-tier, openrouter-free-tier]
+    notes: >
+      groq-free-tier and openrouter-free-tier are NOT wired in anywhere —
+      no shared free-tier pool credentials are configured on this machine.
+      Today, a work-tier request that needs a model uses ollama-local
+      only. Wiring in a real free-tier cloud fallback is a deliberate
+      later step that needs the user to supply free-tier API keys first.
+
+  public:
+    eligible_providers: [ollama-local, groq-free-tier, openrouter-free-tier]
+    notes: >
+      Same real-vs-aspirational state as work tier above — only
+      ollama-local is actually usable today.
+
+providers:
+  ollama-local:
+    kind: local
+    host: http://127.0.0.1:11434
+    configured: true
+    used_by: [jarvis]
+
+  groq-personal:
+    kind: personal-key
+    configured_by_agent: [friday, alfred]
+    notes: Each agent reads its own key from its own env vars; not shared.
+
+  gemini-personal:
+    kind: personal-key
+    configured_by_agent: [friday]
+
+  groq-free-tier:
+    kind: shared-pool
+    configured: false
+    notes: No shared-pool credentials exist yet on this machine.
+
+  openrouter-free-tier:
+    kind: shared-pool
+    configured: false
+    notes: No shared-pool credentials exist yet on this machine.

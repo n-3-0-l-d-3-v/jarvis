@@ -13,7 +13,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-from jarvis.classifier import ClassificationResult, classify
+from jarvis.classifier import ClassificationResult
+from jarvis.local_classifier import classify as classify_intent
 from jarvis.registry import AgentSpec, RegistryError, load_registry
 from jarvis.tiers import (
     Tier,
@@ -57,7 +58,7 @@ def route(
             )
         agent_key = agent_override
     else:
-        classification = classify(text)
+        classification = classify_intent(text, registry)
         agent_key = classification.agent
 
     agent = registry[agent_key]

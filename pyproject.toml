@@ -26,7 +26,7 @@ jarvis = "jarvis.cli:main"
 include = ["jarvis*"]
 
 [tool.setuptools.package-data]
-jarvis = ["agents.yaml"]
+jarvis = ["agents.yaml", "providers.yaml"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

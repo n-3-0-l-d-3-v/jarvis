@@ -18,7 +18,13 @@ def isolated_db(tmp_path, monkeypatch):
 
 
 class TestRouteCommand:
-    def test_route_dry_run_json_defaults_to_friday_with_no_keyword_hits(self, runner):
+    def test_route_dry_run_json_defaults_to_friday_with_no_keyword_hits(self, runner, monkeypatch):
+        # Forces the v1 keyword-only path regardless of whether this machine
+        # happens to have a real Ollama server running with a pulled model
+        # (Phase 5) -- this test is specifically about the keyword
+        # classifier's own default-agent fallback, not about whichever
+        # classifier is actually active in the environment the tests run in.
+        monkeypatch.setenv("JARVIS_DISABLE_LOCAL_CLASSIFIER", "1")
         result = runner.invoke(cli, ["route", "explain hash maps to me", "--json"])
         assert result.exit_code == 0, result.output
         payload = json.loads(result.output)
