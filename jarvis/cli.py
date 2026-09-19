@@ -255,6 +255,9 @@ def daily() -> None:
             "error": f"{type(exc).__name__}: {exc}",
         }
 
+    from jarvis.vault_briefing import vault_briefing
+
+    payload["vault"] = vault_briefing()
     _print_json(payload)
 
 
