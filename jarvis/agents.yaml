@@ -112,14 +112,7 @@ agents:
     path_env: JARVIS_VISION_PATH
     default_path: "C:\\Users\\Neil Thomas Mathew\\Desktop\\Neil\\vision"
     working_directory: "."
-    # KNOWN GAP: Vision has no MCP server (build oversight — its spec never
-    # asked for one, unlike Friday/Ultron/Alfred/TARS). health_check_command
-    # below works today (`jarvis health` can poll it); mcp_launch_command is
-    # left null so mcp_client.py fails loudly and specifically ("Vision has
-    # no MCP server yet") instead of trying to launch a module that doesn't
-    # exist. `jarvis ask --agent vision` / `--tool` will not work until
-    # vision/mcp_server.py is built — tracked in 10x/docs/phases/README.md.
-    mcp_launch_command: null
+    mcp_launch_command: ["python", "-m", "vision.mcp_server"]
     health_check_command: ["vision", "--health"]
     needs_project_path: false
     default_tool: null
