@@ -36,7 +36,7 @@ DISABLE_ENV_VAR = "JARVIS_DISABLE_LOCAL_CLASSIFIER"
 
 def _build_prompt(text: str, registry: dict[str, AgentSpec]) -> str:
     agent_lines = "\n".join(
-        f"- {key}: {spec.role}" for key, spec in sorted(registry.items())
+        f"- {key}: {spec.role}" + (f" - {spec.description}" if spec.description else "") for key, spec in sorted(registry.items())
     )
     return (
         "You are a router. Given a user request and a list of specialist "

@@ -16,6 +16,7 @@
 
 agents:
   friday:
+    description: "saving, capturing and summarizing notes, links, videos and articles; the knowledge base; writing drafts of posts"
     display_name: Friday
     role: knowledge-capture-and-writing
     default_sensitivity_tier: personal-token
@@ -39,6 +40,7 @@ agents:
     default_tool_arg: question
 
   ultron:
+    description: "reverse engineering binaries and firmware, malware, exploits, vulnerabilities, CVEs, security analysis"
     display_name: Ultron
     role: reverse-engineering-and-security
     default_sensitivity_tier: private
@@ -67,6 +69,7 @@ agents:
     default_tool_arg: null
 
   alfred:
+    description: "teaching and explaining computer science concepts, algorithms, data structures, LeetCode hints, interview practice, quizzes"
     display_name: Alfred
     role: learning-and-upskilling
     default_sensitivity_tier: personal-token
@@ -87,6 +90,7 @@ agents:
     default_tool_arg: null
 
   tars:
+    description: "creating new coding projects, running tests and builds, git branches and commits, code scaffolding"
     display_name: TARS
     role: code-build-test-scaffolding
     default_sensitivity_tier: work
@@ -106,6 +110,7 @@ agents:
     default_tool_arg: null
 
   vision:
+    description: "creative work: music, art, design, logos, Excalidraw diagrams, video, photography, creative project folders"
     display_name: Vision
     role: creative-and-ideation
     default_sensitivity_tier: work

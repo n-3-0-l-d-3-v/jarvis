@@ -36,6 +36,7 @@ class AgentSpec:
     needs_project_path: bool = False
     default_tool: Optional[str] = None
     default_tool_arg: Optional[str] = None
+    description: str = ""
 
     @property
     def cwd(self) -> Path:
@@ -118,6 +119,7 @@ def load_registry(agents_yaml_path: Optional[Path] = None) -> dict[str, AgentSpe
             needs_project_path=bool(entry.get("needs_project_path", False)),
             default_tool=entry.get("default_tool"),
             default_tool_arg=entry.get("default_tool_arg"),
+            description=entry.get("description", ""),
         )
     return result
 

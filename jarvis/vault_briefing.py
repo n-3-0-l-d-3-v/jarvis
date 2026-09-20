@@ -19,7 +19,8 @@ def _fm(text: str) -> dict:
 
 
 def vault_briefing(vault: Optional[str] = None, today: Optional[date] = None) -> dict:
-    vault = vault or os.environ.get("VAULT_PATH")
+    if vault is None:
+        vault = os.environ.get("VAULT_PATH")
     if not vault or not Path(vault).is_dir():
         return {"configured": False}
     today = today or date.today()

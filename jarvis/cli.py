@@ -261,6 +261,34 @@ def daily() -> None:
     _print_json(payload)
 
 
+
+@cli.command(name="listen")
+@click.option("--file", "audio_file", type=click.Path(exists=True, dir_okay=False), help="Transcribe this audio file instead of recording.")
+@click.option("--seconds", default=6.0, show_default=True, help="Recording length.")
+@click.option("--speak", "do_speak", is_flag=True, help="Read the agent's answer aloud.")
+@click.option("--dry-run", is_flag=True, help="Only transcribe and show routing; do not dispatch.")
+def listen_cmd(audio_file, seconds, do_speak, dry_run):
+    """Voice in: transcribe locally, route, and (unless --dry-run) dispatch like `jarvis ask`."""
+    import subprocess
+    import sys
+
+    from jarvis import voice
+
+    try:
+        path = audio_file or str(voice.record(seconds))
+        text = voice.transcribe(path)
+    except voice.VoiceError as exc:
+        raise click.ClickException(str(exc))
+    click.echo(f"heard: {text}")
+    if not text:
+        raise click.ClickException("no speech detected")
+    cmd = [sys.executable, "-m", "jarvis.cli", "route" if dry_run else "ask", text] + (["--dry-run"] if dry_run else [])
+    out = subprocess.run(cmd, capture_output=True, text=True)
+    click.echo(out.stdout.strip() or out.stderr.strip())
+    if do_speak and out.stdout.strip() and not dry_run:
+        voice.speak(out.stdout.strip()[:400])
+
+
 def main() -> None:
     cli()
 
