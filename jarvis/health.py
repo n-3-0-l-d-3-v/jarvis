@@ -23,7 +23,7 @@ from jarvis.registry import AgentSpec, RegistryError, load_registry
 from jarvis.store import ContextStore
 
 
-def check_agent_health(agent: AgentSpec, timeout: float = 15.0) -> dict:
+def check_agent_health(agent: AgentSpec, timeout: float = 30.0) -> dict:
     """Run one agent's health_check_command as a subprocess and report the
     outcome. Never raises — a failure to launch is reported as unhealthy,
     not as an exception, since this feeds `jarvis health`'s aggregate JSON
@@ -67,7 +67,7 @@ def check_agent_health(agent: AgentSpec, timeout: float = 15.0) -> dict:
 
 
 def check_all_agents_health(
-    agents_yaml_path: Optional[Path] = None, timeout: float = 15.0
+    agents_yaml_path: Optional[Path] = None, timeout: float = 30.0
 ) -> dict:
     """Aggregate health for all registered sibling agents. Used by
     `jarvis health`."""
