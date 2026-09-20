@@ -289,6 +289,37 @@ def listen_cmd(audio_file, seconds, do_speak, dry_run):
         voice.speak(out.stdout.strip()[:400])
 
 
+
+@cli.command(name="do")
+@click.argument("text")
+@click.option("--agent", default=None, help="Force this agent (skips the classifier).")
+@click.option("--ultron-project", default=None, help="RE project path when routing to Ultron.")
+@click.option("--dry-run", is_flag=True, help="Show agent, tool and arguments; do not execute.")
+def do_cmd(text, agent, ultron_project, dry_run):
+    """Natural language in, one validated tool call out: route, plan with the local model, execute."""
+    from jarvis.dispatch import route
+    from jarvis.mcp_client import call_tool, list_tool_specs
+    from jarvis.planner import PlanError, plan
+
+    decision = route(text, agent_override=agent)
+    if not decision.allowed:
+        raise click.ClickException(f"blocked by tier policy: {decision.conflict_reason}")
+    spec_agent = decision.agent
+    click.echo(f"agent: {spec_agent.key}  tier: {decision.tier_decision.tier.value}")
+    try:
+        specs = asyncio.run(list_tool_specs(spec_agent, ultron_project))
+        tool, args = plan(text, specs)
+    except (PlanError, Exception) as exc:  # noqa: BLE001
+        raise click.ClickException(str(exc))
+    click.echo(f"plan: {tool}({args})")
+    if dry_run:
+        return
+    result = asyncio.run(call_tool(spec_agent, tool, args, ultron_project))
+    click.echo(result.text)
+    if result.is_error:
+        raise SystemExit(1)
+
+
 def main() -> None:
     cli()
 

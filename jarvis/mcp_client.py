@@ -119,3 +119,19 @@ async def call_tool(
             f"(command={params.command} {params.args}, cwd={params.cwd}): "
             f"{type(exc).__name__}: {exc}"
         ) from exc
+
+
+async def list_tool_specs(agent: AgentSpec, project_path: Optional[str] = None) -> list[dict]:
+    """Like list_tools but returns name, description and JSON input schema per tool."""
+    params = _launch_params(agent, project_path)
+    try:
+        async with stdio_client(params) as (read, write):
+            async with ClientSession(read, write) as session:
+                await session.initialize()
+                result = await session.list_tools()
+                return [
+                    {"name": t.name, "description": t.description or "", "schema": getattr(t, "inputSchema", None) or getattr(t, "input_schema", None) or {}}
+                    for t in result.tools
+                ]
+    except Exception as exc:  # noqa: BLE001
+        raise DispatchError(f"failed to list tools for '{agent.key}': {type(exc).__name__}: {exc}") from exc
