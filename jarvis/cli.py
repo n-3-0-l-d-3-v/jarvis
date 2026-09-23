@@ -292,32 +292,73 @@ def listen_cmd(audio_file, seconds, do_speak, dry_run):
 
 @cli.command(name="do")
 @click.argument("text")
-@click.option("--agent", default=None, help="Force this agent (skips the classifier).")
-@click.option("--ultron-project", default=None, help="RE project path when routing to Ultron.")
-@click.option("--dry-run", is_flag=True, help="Show agent, tool and arguments; do not execute.")
-def do_cmd(text, agent, ultron_project, dry_run):
-    """Natural language in, one validated tool call out: route, plan with the local model, execute."""
-    from jarvis.dispatch import route
-    from jarvis.mcp_client import call_tool, list_tool_specs
-    from jarvis.planner import PlanError, plan
+@click.option("--agent", default=None, help="Restrict planning to this agent's tools.")
+@click.option("--ultron-project", default=None, help="RE project path; makes Ultron's tools plannable.")
+@click.option("--dry-run", is_flag=True, help="Show the plan; do not execute.")
+@click.option("--yes", "-y", is_flag=True, help="Run multi-step plans without asking.")
+def do_cmd(text, agent, ultron_project, dry_run, yes):
+    """Natural language in, a validated 1-3 step plan across agents out, then execute it.
 
-    decision = route(text, agent_override=agent)
-    if not decision.allowed:
-        raise click.ClickException(f"blocked by tier policy: {decision.conflict_reason}")
-    spec_agent = decision.agent
-    click.echo(f"agent: {spec_agent.key}  tier: {decision.tier_decision.tier.value}")
+    Every step is checked against the tool's real schema and the privacy tier
+    policy before anything runs; plans with more than one step ask first.
+    """
+    from jarvis.dispatch import route
+    from jarvis.mcp_client import call_tool
+    from jarvis.planner import PlanError, fill_prev, plan_multi
+    from jarvis.registry import load_registry
+    from jarvis.tool_cache import get_specs
+
+    registry = load_registry()
+    if agent and agent not in registry:
+        raise click.ClickException(f"unknown agent {agent!r}; known: {sorted(registry)}")
     try:
-        specs = asyncio.run(list_tool_specs(spec_agent, ultron_project))
-        tool, args = plan(text, specs)
-    except (PlanError, Exception) as exc:  # noqa: BLE001
+        specs = get_specs(registry, ultron_project=ultron_project)
+    except Exception as exc:  # noqa: BLE001
+        raise click.ClickException(f"could not load tool specs: {exc}")
+    if agent:
+        specs = {agent: specs.get(agent, [])}
+    if not any(specs.values()):
+        raise click.ClickException("no dispatchable tools (run `jarvis tools --refresh`)")
+    try:
+        steps = plan_multi(text, specs)
+    except PlanError as exc:
         raise click.ClickException(str(exc))
-    click.echo(f"plan: {tool}({args})")
+
+    decisions = []
+    for n, (step_agent, tool, args) in enumerate(steps, 1):
+        decision = route(text, agent_override=step_agent)
+        decisions.append(decision)
+        flag = "" if decision.allowed else f"  BLOCKED: {decision.conflict_reason}"
+        click.echo(f"{n}. {step_agent}.{tool}({args})  tier={decision.tier_decision.tier.value}{flag}")
+    if not all(d.allowed for d in decisions):
+        raise click.ClickException("plan blocked by tier policy; nothing was run")
     if dry_run:
         return
-    result = asyncio.run(call_tool(spec_agent, tool, args, ultron_project))
-    click.echo(result.text)
-    if result.is_error:
-        raise SystemExit(1)
+    if len(steps) > 1 and not yes and not click.confirm(f"Run these {len(steps)} steps?", default=False):
+        click.echo("cancelled; nothing was run")
+        return
+
+    prev = ""
+    for n, (step_agent, tool, args) in enumerate(steps, 1):
+        result = asyncio.run(call_tool(registry[step_agent], tool, fill_prev(args, prev), ultron_project))
+        click.echo(f"--- step {n}: {step_agent}.{tool}")
+        click.echo(result.text)
+        if result.is_error:
+            click.echo(f"step {n} failed; stopping (later steps not run)", err=True)
+            raise SystemExit(1)
+        prev = result.text
+
+
+@cli.command(name="tools")
+@click.option("--refresh", is_flag=True, help="Re-list every agent's tools now.")
+@click.option("--ultron-project", default=None, help="Include Ultron (project-scoped).")
+def tools_cmd(refresh, ultron_project):
+    """List every dispatchable agent tool (cached for a day)."""
+    from jarvis.registry import load_registry
+    from jarvis.tool_cache import get_specs
+
+    for key, tools in sorted(get_specs(load_registry(), refresh=refresh, ultron_project=ultron_project).items()):
+        click.echo(f"{key}: " + ", ".join(t["name"] for t in tools))
 
 
 def main() -> None:

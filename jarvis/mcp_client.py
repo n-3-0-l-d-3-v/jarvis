@@ -33,6 +33,17 @@ from mcp.client.stdio import stdio_client
 from jarvis.registry import AgentSpec, RegistryError
 
 
+def _errlog():
+    """Child agents' stderr (library INFO logs, git noise) is hidden unless
+    JARVIS_DEBUG is set; tool results and errors still come back over MCP."""
+    import os
+    import sys
+
+    if os.environ.get("JARVIS_DEBUG"):
+        return sys.stderr
+    return open(os.devnull, "w")
+
+
 class DispatchError(Exception):
     """Raised for MCP launch/call failures, with enough context to show the
     user a clear error rather than a raw traceback."""
@@ -65,7 +76,7 @@ async def list_tools(agent: AgentSpec, project_path: Optional[str] = None) -> li
     Mainly useful for diagnostics/tests."""
     params = _launch_params(agent, project_path)
     try:
-        async with stdio_client(params) as (read, write):
+        async with stdio_client(params, errlog=_errlog()) as (read, write):
             async with ClientSession(read, write) as session:
                 await session.initialize()
                 result = await session.list_tools()
@@ -91,7 +102,7 @@ async def call_tool(
     module docstring."""
     params = _launch_params(agent, project_path)
     try:
-        async with stdio_client(params) as (read, write):
+        async with stdio_client(params, errlog=_errlog()) as (read, write):
             async with ClientSession(read, write) as session:
                 await session.initialize()
                 result = await session.call_tool(tool_name, arguments)
@@ -125,7 +136,7 @@ async def list_tool_specs(agent: AgentSpec, project_path: Optional[str] = None) 
     """Like list_tools but returns name, description and JSON input schema per tool."""
     params = _launch_params(agent, project_path)
     try:
-        async with stdio_client(params) as (read, write):
+        async with stdio_client(params, errlog=_errlog()) as (read, write):
             async with ClientSession(read, write) as session:
                 await session.initialize()
                 result = await session.list_tools()

@@ -69,6 +69,7 @@ def chat(
     host: str = DEFAULT_HOST,
     timeout: float = DEFAULT_TIMEOUT,
     temperature: float = 0.0,
+    fmt: dict | str | None = None,
 ) -> OllamaResponse:
     """One-shot, non-streaming chat completion. temperature=0.0 by default
     since this client's first real caller (local_classifier.py) wants
@@ -81,6 +82,7 @@ def chat(
             "messages": [{"role": "user", "content": prompt}],
             "stream": False,
             "options": {"temperature": temperature},
+            **({"format": fmt} if fmt is not None else {}),
         }
     ).encode("utf-8")
     request = urllib.request.Request(
