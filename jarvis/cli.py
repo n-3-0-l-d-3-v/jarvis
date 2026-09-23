@@ -302,51 +302,29 @@ def do_cmd(text, agent, ultron_project, dry_run, yes):
     Every step is checked against the tool's real schema and the privacy tier
     policy before anything runs; plans with more than one step ask first.
     """
-    from jarvis.dispatch import route
-    from jarvis.mcp_client import call_tool
-    from jarvis.planner import PlanError, fill_prev, plan_multi
-    from jarvis.registry import load_registry
-    from jarvis.tool_cache import get_specs
+    from jarvis.orchestrate import execute_steps, plan_request
+    from jarvis.planner import PlanError
 
-    registry = load_registry()
-    if agent and agent not in registry:
-        raise click.ClickException(f"unknown agent {agent!r}; known: {sorted(registry)}")
     try:
-        specs = get_specs(registry, ultron_project=ultron_project)
-    except Exception as exc:  # noqa: BLE001
-        raise click.ClickException(f"could not load tool specs: {exc}")
-    if agent:
-        specs = {agent: specs.get(agent, [])}
-    if not any(specs.values()):
-        raise click.ClickException("no dispatchable tools (run `jarvis tools --refresh`)")
-    try:
-        steps = plan_multi(text, specs)
+        plan = plan_request(text, agent=agent, ultron_project=ultron_project)
     except PlanError as exc:
         raise click.ClickException(str(exc))
-
-    decisions = []
-    for n, (step_agent, tool, args) in enumerate(steps, 1):
-        decision = route(text, agent_override=step_agent)
-        decisions.append(decision)
-        flag = "" if decision.allowed else f"  BLOCKED: {decision.conflict_reason}"
-        click.echo(f"{n}. {step_agent}.{tool}({args})  tier={decision.tier_decision.tier.value}{flag}")
-    if not all(d.allowed for d in decisions):
+    except Exception as exc:  # noqa: BLE001
+        raise click.ClickException(f"could not plan: {exc}")
+    click.echo(plan.describe())
+    if not plan.allowed:
         raise click.ClickException("plan blocked by tier policy; nothing was run")
     if dry_run:
         return
-    if len(steps) > 1 and not yes and not click.confirm(f"Run these {len(steps)} steps?", default=False):
+    if len(plan.steps) > 1 and not yes and not click.confirm(f"Run these {len(plan.steps)} steps?", default=False):
         click.echo("cancelled; nothing was run")
         return
-
-    prev = ""
-    for n, (step_agent, tool, args) in enumerate(steps, 1):
-        result = asyncio.run(call_tool(registry[step_agent], tool, fill_prev(args, prev), ultron_project))
-        click.echo(f"--- step {n}: {step_agent}.{tool}")
-        click.echo(result.text)
-        if result.is_error:
+    for n, done in enumerate(execute_steps(plan, ultron_project=ultron_project), 1):
+        click.echo(f"--- step {n}: {done.step.agent}.{done.step.tool}")
+        click.echo(done.result.text)
+        if done.result.is_error:
             click.echo(f"step {n} failed; stopping (later steps not run)", err=True)
             raise SystemExit(1)
-        prev = result.text
 
 
 @cli.command(name="tools")
