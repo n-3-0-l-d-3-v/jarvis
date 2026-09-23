@@ -16,7 +16,7 @@
 
 agents:
   friday:
-    description: "saving, capturing and summarizing notes, links, videos and articles; the knowledge base; writing drafts of posts"
+    description: "saving, capturing and summarizing notes, links, videos and articles; the knowledge base; writing drafts of posts; weekly post ideas and the content calendar"
     display_name: Friday
     role: knowledge-capture-and-writing
     default_sensitivity_tier: personal-token
