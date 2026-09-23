@@ -266,8 +266,9 @@ def daily() -> None:
 @click.option("--file", "audio_file", type=click.Path(exists=True, dir_okay=False), help="Transcribe this audio file instead of recording.")
 @click.option("--seconds", default=6.0, show_default=True, help="Recording length.")
 @click.option("--speak", "do_speak", is_flag=True, help="Read the agent's answer aloud.")
-@click.option("--dry-run", is_flag=True, help="Only transcribe and show routing; do not dispatch.")
-def listen_cmd(audio_file, seconds, do_speak, dry_run):
+@click.option("--dry-run", is_flag=True, help="Only transcribe and show routing/plan; do not dispatch.")
+@click.option("--do", "use_do", is_flag=True, help="Plan multi-step actions (like `jarvis do`) instead of a single ask.")
+def listen_cmd(audio_file, seconds, do_speak, dry_run, use_do):
     """Voice in: transcribe locally, route, and (unless --dry-run) dispatch like `jarvis ask`."""
     import subprocess
     import sys
@@ -282,6 +283,10 @@ def listen_cmd(audio_file, seconds, do_speak, dry_run):
     click.echo(f"heard: {text}")
     if not text:
         raise click.ClickException("no speech detected")
+    if use_do:
+        ctx = click.get_current_context()
+        ctx.invoke(do_cmd, text=text, agent=None, ultron_project=None, dry_run=dry_run, yes=False)
+        return
     cmd = [sys.executable, "-m", "jarvis.cli", "route" if dry_run else "ask", text] + (["--dry-run"] if dry_run else [])
     out = subprocess.run(cmd, capture_output=True, text=True)
     click.echo(out.stdout.strip() or out.stderr.strip())
