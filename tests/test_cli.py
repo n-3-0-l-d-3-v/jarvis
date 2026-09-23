@@ -102,9 +102,9 @@ class TestAskCommand:
         assert "refused" in result.output
 
     def test_ask_agent_without_default_tool_and_no_explicit_tool_errors(self, runner):
-        # alfred has no default_tool; without --tool this must fail cleanly,
+        # tars has no default_tool; without --tool this must fail cleanly,
         # not crash trying to guess an argument.
-        result = runner.invoke(cli, ["ask", "hello", "--agent", "alfred"])
+        result = runner.invoke(cli, ["ask", "hello", "--agent", "tars"])
         assert result.exit_code == 2
         assert "default_tool" in result.output or "--tool" in result.output
 

@@ -82,12 +82,12 @@ agents:
     mcp_launch_command: ["python", "-m", "alfred.mcp_server"]
     health_check_command: ["python", "-m", "alfred", "--health"]
     needs_project_path: false
-    # No default_tool: Alfred's tools (get_hint, submit_for_ac_gate,
+    # default_tool: explain_concept(concept) is free text in, free text out
     # get_review, get_interview_questions) all require a problem `slug`
     # (and often a `level`/`code`), not a single free-text argument.
     # `jarvis ask --agent alfred` requires explicit --tool/--tool-arg.
-    default_tool: null
-    default_tool_arg: null
+    default_tool: explain_concept
+    default_tool_arg: concept
 
   tars:
     description: "creating new coding projects, running tests and builds, git branches and commits, code scaffolding"
