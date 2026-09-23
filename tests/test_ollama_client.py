@@ -106,3 +106,11 @@ def test_chat_raises_ollama_unavailable_on_empty_content(monkeypatch):
     )
     with pytest.raises(ollama_client.OllamaUnavailable):
         ollama_client.chat("qwen2.5:3b", "hello")
+
+
+def test_context_options_only_grows_the_window_when_needed():
+    from jarvis.ollama_client import context_options
+    assert context_options("short prompt") == {}
+    assert context_options("x" * 12000) == {"num_ctx": 8192}
+    assert context_options("x" * 50000) == {"num_ctx": 16384}
+    assert context_options("x" * 10**7) == {"num_ctx": 32768}

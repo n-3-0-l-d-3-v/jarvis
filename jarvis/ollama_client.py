@@ -19,6 +19,20 @@ from dataclasses import dataclass
 
 DEFAULT_HOST = "http://127.0.0.1:11434"
 DEFAULT_TIMEOUT = 15.0
+DEFAULT_CTX = 4096  # Ollama's default context window
+MAX_CTX = 32768
+CHARS_PER_TOKEN = 3.5  # conservative: measured ~3.7-4.1 on this ecosystem's prompts
+
+
+def context_options(prompt: str, reply_tokens: int = 768) -> dict:
+    """Ollama silently drops the START of a prompt that overflows num_ctx --
+    i.e. the instructions. Ask for a bigger window only when this prompt
+    needs one, so small prompts keep the cheap default (less VRAM, no reload)."""
+    need = int(len(prompt) / CHARS_PER_TOKEN) + reply_tokens
+    ctx = DEFAULT_CTX
+    while ctx < need and ctx < MAX_CTX:
+        ctx *= 2
+    return {"num_ctx": ctx} if ctx > DEFAULT_CTX else {}
 
 
 class OllamaUnavailable(Exception):
@@ -81,7 +95,7 @@ def chat(
             "model": model,
             "messages": [{"role": "user", "content": prompt}],
             "stream": False,
-            "options": {"temperature": temperature},
+            "options": {"temperature": temperature, **context_options(prompt)},
             **({"format": fmt} if fmt is not None else {}),
         }
     ).encode("utf-8")
