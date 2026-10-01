@@ -76,10 +76,14 @@ def check_all_agents_health(
     except RegistryError as exc:
         return {"registry_error": str(exc), "agents": {}}
 
-    agents_status = {
-        key: check_agent_health(agent, timeout=timeout) for key, agent in registry.items()
-    }
-    return {"agents": agents_status}
+    # In parallel: each check is an independent subprocess, so the total is
+    # the slowest agent rather than the sum (sequential runs hit Wall-E's
+    # 30s limit when the scheduled report shared the machine, 2026-10-02).
+    from concurrent.futures import ThreadPoolExecutor
+
+    with ThreadPoolExecutor(max_workers=max(1, len(registry))) as pool:
+        futures = {key: pool.submit(check_agent_health, agent, timeout) for key, agent in registry.items()}
+    return {"agents": {key: f.result() for key, f in futures.items()}}
 
 
 def jarvis_self_health(

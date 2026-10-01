@@ -116,6 +116,22 @@ class TestCheckAllAgentsHealth:
         assert result["agents"]["bad"]["healthy"] is False
 
 
+def test_all_agents_checked_in_parallel_and_keep_registry_order(monkeypatch):
+    import time
+    from jarvis import health
+
+    monkeypatch.setattr(health, "load_registry", lambda path=None: {k: k for k in ("a", "b", "c", "d")})
+
+    def slow(agent, timeout=30.0):
+        time.sleep(0.5)
+        return {"agent": agent, "healthy": True}
+    monkeypatch.setattr(health, "check_agent_health", slow)
+    start = time.monotonic()
+    result = health.check_all_agents_health()
+    assert time.monotonic() - start < 1.5
+    assert list(result["agents"]) == ["a", "b", "c", "d"]
+
+
 class TestJarvisSelfHealth:
     def test_healthy_when_db_and_registry_ok(self, tmp_path):
         db_path = tmp_path / "jarvis.db"
