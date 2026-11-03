@@ -4,6 +4,11 @@ plan_request() never has side effects: it plans with the local model, validates
 every step against the target tool's schema, and runs the tier policy for each
 step. execute_steps() runs an already-validated plan in order, stopping at the
 first failing step.
+
+Every dispatch decision is written to the audit log (one row per step, allowed
+or refused), exactly like `jarvis ask`, so Wall-E's privacy audit sees work done
+through `jarvis do` and the MCP server too. Auditing is not optional: if the log
+can't be written, nothing runs.
 """
 from __future__ import annotations
 
@@ -15,6 +20,7 @@ from jarvis.dispatch import RouteDecision, route
 from jarvis.mcp_client import ToolCallResult, call_tool
 from jarvis.planner import PlanError, fill_prev, plan_multi
 from jarvis.registry import AgentSpec, load_registry
+from jarvis.store import AuditLog
 from jarvis.tool_cache import get_specs
 
 
@@ -68,12 +74,29 @@ class StepResult:
     result: ToolCallResult
 
 
-def execute_steps(plan: Plan, *, ultron_project: Optional[str] = None) -> list[StepResult]:
+def _record(audit: AuditLog, step: Step, allowed: bool, reason: str, via: str) -> None:
+    audit.record(step.agent, step.decision.tier_decision.tier.value, allowed=allowed, reason=reason,
+                 detail={"tool": step.tool, "via": via})
+
+
+def record_refusals(plan: Plan, *, audit: Optional[AuditLog] = None, via: str = "plan") -> None:
+    """Audit a blocked plan: each blocked step as refused (nothing ran)."""
+    audit = audit or AuditLog()
+    for step in plan.steps:
+        if not step.allowed:
+            _record(audit, step, False, step.decision.conflict_reason or "blocked by tier policy", via)
+
+
+def execute_steps(plan: Plan, *, ultron_project: Optional[str] = None,
+                  audit: Optional[AuditLog] = None, via: str = "plan") -> list[StepResult]:
+    audit = audit or AuditLog()
     if not plan.allowed:
+        record_refusals(plan, audit=audit, via=via)
         raise PlanError("plan blocked by tier policy; nothing was run")
     out: list[StepResult] = []
     prev = ""
     for step in plan.steps:
+        _record(audit, step, True, step.decision.tier_decision.reason, via)
         result = asyncio.run(call_tool(plan.registry[step.agent], step.tool, fill_prev(step.args, prev), ultron_project))
         out.append(StepResult(step, result))
         if result.is_error:

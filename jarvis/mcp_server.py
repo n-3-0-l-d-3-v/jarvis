@@ -66,7 +66,7 @@ def run(request: str, confirm: bool = False, agent: str = "") -> str:
             p = plan_request(request, agent=agent or None)
             if not confirm:
                 return "Not run (confirm=false). Plan:\n" + p.describe()
-            results = execute_steps(p)
+            results = execute_steps(p, via="mcp-run")
     except PlanError as exc:
         return f"Error: {exc}"
     out = []
@@ -91,6 +91,7 @@ def agent_tool(agent: str, tool: str, arguments: str = "{}") -> str:
     from jarvis.dispatch import route as _route
     from jarvis.mcp_client import call_tool
     from jarvis.registry import RegistryError, get_agent
+    from jarvis.store import AuditLog
 
     try:
         args = json.loads(arguments or "{}")
@@ -99,8 +100,14 @@ def agent_tool(agent: str, tool: str, arguments: str = "{}") -> str:
         return f"Error: {exc}"
     with _quiet():
         decision = _route(f"{tool} {arguments}", agent_override=agent)
+        audit = AuditLog()
+        tier = decision.tier_decision.tier.value
         if not decision.allowed:
+            audit.record(spec.key, tier, allowed=False, reason=decision.conflict_reason or "",
+                         detail={"tool": tool, "via": "mcp-agent_tool"})
             return f"Refused by tier policy: {decision.conflict_reason}"
+        audit.record(spec.key, tier, allowed=True, reason=decision.tier_decision.reason,
+                     detail={"tool": tool, "via": "mcp-agent_tool"})
         result = asyncio.run(call_tool(spec, tool, args))
     return result.text
 

@@ -307,7 +307,7 @@ def do_cmd(text, agent, ultron_project, dry_run, yes):
     Every step is checked against the tool's real schema and the privacy tier
     policy before anything runs; plans with more than one step ask first.
     """
-    from jarvis.orchestrate import execute_steps, plan_request
+    from jarvis.orchestrate import execute_steps, plan_request, record_refusals
     from jarvis.planner import PlanError
 
     try:
@@ -318,13 +318,14 @@ def do_cmd(text, agent, ultron_project, dry_run, yes):
         raise click.ClickException(f"could not plan: {exc}")
     click.echo(plan.describe())
     if not plan.allowed:
+        record_refusals(plan, via="cli-do")
         raise click.ClickException("plan blocked by tier policy; nothing was run")
     if dry_run:
         return
     if len(plan.steps) > 1 and not yes and not click.confirm(f"Run these {len(plan.steps)} steps?", default=False):
         click.echo("cancelled; nothing was run")
         return
-    for n, done in enumerate(execute_steps(plan, ultron_project=ultron_project), 1):
+    for n, done in enumerate(execute_steps(plan, ultron_project=ultron_project, via="cli-do"), 1):
         click.echo(f"--- step {n}: {done.step.agent}.{done.step.tool}")
         click.echo(done.result.text)
         if done.result.is_error:
