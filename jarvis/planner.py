@@ -156,6 +156,13 @@ def drop_ungrounded(args: dict, required: list[str], request: str) -> dict:
     words = set(re.findall(r"[a-z0-9]{3,}", request.lower()))
     kept = {}
     for k, v in args.items():
+        if isinstance(v, bool) and k not in required:
+            # Optional flags (dry_run, all_files...) only when the request names
+            # them: the planner once added dry_run=true unasked, silently
+            # turning a write into a preview.
+            if set(re.findall(r"[a-z0-9]{3,}", k.lower().replace("_", " "))) & words:
+                kept[k] = v
+            continue
         if k in required or not isinstance(v, str) or PREV in v:
             kept[k] = v
             continue

@@ -65,3 +65,12 @@ def test_tool_cache_reuses_fresh_entries_and_skips_unplannable(tmp_path, monkeyp
     assert len(calls) == 1  # second call served from cache
     tool_cache.get_specs(reg, lister=lister, now=1000 + tool_cache.MAX_AGE_SECONDS + 1)
     assert len(calls) == 2  # expired -> re-listed
+
+
+def test_optional_flags_survive_only_when_the_request_names_them():
+    from jarvis.planner import drop_ungrounded
+    req = "give me post ideas from what I learned this week"
+    assert drop_ungrounded({"days": 7, "dry_run": True}, [], req) == {"days": 7}
+    assert drop_ungrounded({"dry_run": True}, [], "do a dry run of the post ideas") == {"dry_run": True}
+    assert drop_ungrounded({"all_files": True}, [], "scan all files in tars for secrets") == {"all_files": True}
+    assert drop_ungrounded({"force": True}, ["force"], "make it") == {"force": True}  # required stays
