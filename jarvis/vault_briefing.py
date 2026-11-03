@@ -29,8 +29,14 @@ def vault_briefing(vault: Optional[str] = None, today: Optional[date] = None) ->
 
     reports = sorted((agents / "Wall-E").glob("wall-e-report-*.md"))
     if reports:
-        fm = _fm(reports[-1].read_text(encoding="utf-8"))
-        out["wall_e"] = {"report": reports[-1].name, "overall_status": fm.get("overall_status", "unknown")}
+        text = reports[-1].read_text(encoding="utf-8")
+        fm = _fm(text)
+        # Wall-E writes `status:` (older drafts of this reader expected `overall_status:`).
+        out["wall_e"] = {
+            "report": reports[-1].name,
+            "overall_status": fm.get("status") or fm.get("overall_status") or "unknown",
+            "reasons": re.findall(r"^- Reason: (.+)$", text, re.MULTILINE),
+        }
 
     due = []
     horizon = today + timedelta(days=3)
